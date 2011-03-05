@@ -40,12 +40,16 @@ function handler_for(ev_name) {
 }
 
 var NORMAL_EVENTS = { couch: ['couchdb', 'dbs', 'session', 'config']
-                    , db   : ['metadata', 'security', 'ddoc_ids']
-                    , ddoc : ['info']
+                    , db   : ['metadata', 'security', 'ddoc_ids', 'end']
+                    , ddoc : ['info', 'end']
                     };
 
 NORMAL_EVENTS.couch.forEach(function(ev_name) {
   couch.on(ev_name, handler_for(ev_name));
+})
+
+couch.on('end', function() {
+  line('end', 'Probe complete');
 })
 
 couch.on('users', function show_users(users) {
@@ -54,18 +58,18 @@ couch.on('users', function show_users(users) {
 
 couch.on('db', function(db) {
   NORMAL_EVENTS.db.forEach(function(ev_name) {
-    db.on(ev_name, handler_for([ev_name, db.name].join(':')));
+    db.on(ev_name, handler_for([ev_name, db.name].join(' ')));
   })
 
   db.on('ddoc', function(ddoc) {
     var path = [db.name, ddoc.id].join('/');
 
     NORMAL_EVENTS.ddoc.forEach(function(ev_name) {
-      ddoc.on(ev_name, handler_for([ev_name, path].join(':')));
+      ddoc.on(ev_name, handler_for([ev_name, path].join(' ')));
     })
 
     ddoc.on('body', function show_ddoc_body(body) {
-      line(['body', path].join(':'), '(' + JSON.stringify(body).length + ' characters; ' + Object.keys(body).length + ' top-level keys)');
+      line(['body', path].join(' '), '(' + JSON.stringify(body).length + ' characters; ' + Object.keys(body).length + ' top-level keys)');
     })
   })
 })
