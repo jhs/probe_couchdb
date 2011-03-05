@@ -39,7 +39,12 @@ function handler_for(ev_name) {
   }
 }
 
-; ['couchdb', 'dbs', 'session', 'config'].forEach(function(ev_name) {
+var NORMAL_EVENTS = { couch: ['couchdb', 'dbs', 'session', 'config']
+                    , db   : ['metadata', 'security', 'ddoc_ids']
+                    , ddoc : ['info']
+                    };
+
+NORMAL_EVENTS.couch.forEach(function(ev_name) {
   couch.on(ev_name, handler_for(ev_name));
 })
 
@@ -48,14 +53,14 @@ couch.on('users', function show_users(users) {
 })
 
 couch.on('db', function(db) {
-  ; ['metadata', 'security', 'ddoc_ids'].forEach(function(ev_name) {
+  NORMAL_EVENTS.db.forEach(function(ev_name) {
     db.on(ev_name, handler_for([ev_name, db.name].join(':')));
   })
 
   db.on('ddoc', function(ddoc) {
     var path = [db.name, ddoc.id].join('/');
 
-    ; ['info'].forEach(function(ev_name) {
+    NORMAL_EVENTS.ddoc.forEach(function(ev_name) {
       ddoc.on(ev_name, handler_for([ev_name, path].join(':')));
     })
 
