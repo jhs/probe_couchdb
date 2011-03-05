@@ -45,10 +45,35 @@ function CouchDB () {
 
   self.on('dbs', function emit_db_probes(dbs) {
     self.log.debug('Creating probes for ' + dbs.length + ' dbs');
+
+    if(dbs.length === 0) {
+      // Simply mark the dbs as done.
+      self.x_emit('end_dbs');
+      return;
+    }
+
+    // Track pending dbs to determine when all are done.
+    var pending_dbs = {};
+
     dbs.forEach(function(db_name) {
       var db = new Database;
       db.couch = self.url;
       db.name = db_name;
+
+      pending_dbs[db.name] = db;
+      db.on('end', function mark_db_done() {
+        delete pending_dbs[db.name];
+        if(Object.keys(pending_dbs).length === 0)
+          self.x_emit('end_dbs');
+      })
+
+      process.on('exit', function() {
+        var names = Object.keys(pending_dbs);
+        if(names.length > 0) {
+          util.puts("Still have pending dbs: " + util.inspect(names));
+        }
+      })
+
       self.x_emit('db', db);
       db.start();
     })
@@ -123,6 +148,19 @@ function CouchDB () {
       }
     })
   })
+
+  self.known('couchdb', function(welcome) {
+    self.known('users', function(users) {
+      self.known('session', function(session) {
+        self.known('config', function(config) {
+          self.known('end_dbs', function() {
+            self.x_emit('end');
+          })
+        })
+      })
+    })
+  })
+
 } // CouchDB
 
 util.inherits(CouchDB, Emitter);

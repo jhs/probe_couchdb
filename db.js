@@ -71,14 +71,41 @@ function Database () {
 
   self.on('ddoc_ids', function emit_ddoc_probes(ids) {
     self.log.debug('Creating probes for ' + ids.length + ' ddocs');
+
+    if(ids.length === 0) {
+      // Simply mark the ddocs as done.
+      self.x_emit('end_ddocs');
+      return;
+    }
+
+    // Track pending ddocs to determine when all are done.
+    var pending_ddocs = {};
+
     ids.forEach(function(id) {
       var ddoc = new DesignDocument;
       ddoc.db = self.url;
       ddoc.id = id;
+
+      pending_ddocs[ddoc.id] = ddoc;
+      ddoc.on('end', function mark_ddoc_done() {
+        delete pending_ddocs[ddoc.id];
+        if(Object.keys(pending_ddocs).length === 0)
+          self.x_emit('end_ddocs');
+      })
+
       self.x_emit('ddoc', ddoc);
       ddoc.start();
     })
   })
+
+  self.known('metadata', function(metadata) {
+    self.known('security', function(security) {
+      self.known('end_ddocs', function(ddoc_ids) {
+        self.x_emit('end');
+      })
+    })
+  })
+
 } // Database
 util.inherits(Database, Emitter);
 

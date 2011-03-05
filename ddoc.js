@@ -40,6 +40,12 @@ function DesignDocument () {
     })
   })
 
+  self.known('body', function(body) {
+    self.known('info', function(info) {
+      self.x_emit('end');
+    })
+  })
+
 } // DesignDocument
 util.inherits(DesignDocument, Emitter);
 
